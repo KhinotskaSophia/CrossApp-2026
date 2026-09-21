@@ -18,6 +18,7 @@ CrossApp/
     └── Cli/ 
         ├── Cli.csproj                  
         └── Program.cs
+```
 
 # Запуск 
 dotnet build 
