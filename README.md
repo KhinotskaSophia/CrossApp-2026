@@ -31,7 +31,7 @@ dotnet publish src/Cli -c Release -r win-x64 --self-contained true
 
 RID         Режим                   Розмір publish      Потрібен runtime
 win-x64     self-contained          ~76 МБ              ні 
-win-x64     framework-dependent     ~195 МБ             так (.NET 10) - встановлений 
+win-x64     framework-dependent     ~195 KБ             так (.NET 10) - встановлений 
 
 # Режими публікації
 Framework-dependent: Публікація містить лише безпосередньо код застосунку та його залежності, але не містить .NET Runtime. Займає дуже мало місця, проте для її запуску на комп’ютері користувача має бути обов'язково встановлений .NET Runtime відповідної версії (.NET 10).
