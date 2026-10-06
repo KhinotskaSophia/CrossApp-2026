@@ -1,42 +1,44 @@
-﻿using Core.Domain;
+﻿using Core;
+using Core.Abstractions;
+using Core.Services;
+using Core.Storage;
 
-Console.WriteLine("=== Сценарій 1: успіх ===");
+bool useFile = args.Contains("--file");
+string dataPath = Path.Combine(AppContext.BaseDirectory, "data", "catalog.json");
 
-var copy = BookCopy.Create("BC-001", "978-0-13-235088-4", "Clean Code");
-Console.WriteLine($"Створено: {copy}");
+IBookStore store = useFile
+    ? new FileBookStore(dataPath)
+    : new InMemoryBookStore(SampleData.Copies());
 
-var loan = Loan.Open("LN-101", copy, "R-007", new DateTime(2026, 10, 1));
-Console.WriteLine($"Оформлено: {loan}");
-Console.WriteLine($"Стан примірника: {copy}");
+var service = new LendingService(store);
 
-loan.Close(copy, new DateTime(2026, 10, 5));
-Console.WriteLine($"Після повернення: {loan}");
-Console.WriteLine($"Стан примірника: {copy}");
+Console.WriteLine($"=== Сховище: {store.GetType().Name} ===");
+if (useFile)
+    Console.WriteLine($"Шлях до файлу: {dataPath}");
 
-Console.WriteLine();
-Console.WriteLine("=== Сценарій 2: порушення інваріантів ===");
+Console.WriteLine("\n--- 1. Сценарій: додавання та зміна стану примірника ---");
+var newCopy = service.AddBook("978-0-13-110362-7", "The C Programming Language");
+Console.WriteLine($"Додано: {newCopy}");
 
-TryDo("Порожній ISBN примірника", () =>
+Console.WriteLine("Видаємо примірник читачеві...");
+service.IssueCopy(newCopy.Id);
+Console.WriteLine($"Поточний стан: {service.Find(newCopy.Id)}");
+
+Console.WriteLine("\n--- 2. Всі примірники у фонді (перші 5) ---");
+foreach (var copy in service.All().Take(5))
 {
-    BookCopy.Create("BC-002", "   ", "Refactoring");
+    Console.WriteLine($"  {copy.Id,-10} {copy.Isbn,-20} {copy.Title,-35} {(copy.IsIssued ? "[На руках]" : "[В наявності]")}");
+}
+
+Console.WriteLine("\n--- 3. Сценарій відмови (перевірка помилок) ---");
+TryDo("Спроба видати неіснуючий примірник", () =>
+{
+    service.IssueCopy("NON-EXISTENT-ID");
 });
 
-var busyCopy = BookCopy.Create("BC-003", "978-0-201-48567-7", "DDD");
-var activeLoan = Loan.Open("LN-102", busyCopy, "R-001", new DateTime(2026, 10, 2));
-
-TryDo("Повторна видача вже виданого примірника", () =>
+TryDo("Спроба повторно видати вже виданий примірник", () =>
 {
-    Loan.Open("LN-103", busyCopy, "R-002", new DateTime(2026, 10, 3));
-});
-
-TryDo("Дата повернення раніша за дату видачі", () =>
-{
-    activeLoan.Close(busyCopy, new DateTime(2026, 9, 30));
-});
-
-TryDo("Повторне закриття вже закритої видачі", () =>
-{
-    loan.Close(copy, new DateTime(2026, 10, 6));
+    service.IssueCopy(newCopy.Id);
 });
 
 static void TryDo(string title, Action action)
@@ -44,10 +46,10 @@ static void TryDo(string title, Action action)
     try
     {
         action();
-        Console.WriteLine($"[ПОМИЛКА ТЕСТУ] {title}: виняток НЕ спрацював!");
+        Console.WriteLine($"[ПОМИЛКА] {title}: дія пройшла без винятку!");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[ОК] {title}: {ex.GetType().Name} -> {ex.Message}");
+        Console.WriteLine($"[ПЕРЕХОПЛЕНО]: {title} -> {ex.GetType().Name}: {ex.Message}");
     }
 }

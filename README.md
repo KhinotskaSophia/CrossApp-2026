@@ -11,28 +11,36 @@ CrossApp/
 ├── .gitignore
 ├── data/
 │   └── sample.csv
-└── src/
-    ├── Core/
-    │   ├── Core.csproj
-    │   ├── EnvironmentInfo.cs
-    │   ├── Domain/
-    │   │   ├── BookCopy.cs
-    │   │   └── Loan.cs
-    │   ├── Dto/
-    │   │   ├── BookCopyDto.cs
-    │   │   ├── BookDto.cs
-    │   │   ├── ImportResult.cs
-    │   │   ├── LoanDto.cs
-    │   │   └── ReaderDto.cs
-    │   └── Import/
-    │       └── BookCsvImporter.cs
-    └── Cli/
-        ├── Cli.csproj
-        └── Program.cs
+└── src/Core/
+├── Abstractions/
+│   └── IBookStore.cs
+├── Domain/
+│   ├── BookCopy.cs
+│   └── Loan.cs
+├── Dto/
+│   ├── BookCopyDto.cs
+│   ├── BookDto.cs
+│   ├── ImportResult.cs
+│   ├── LoanDto.cs
+│   └── ReaderDto.cs
+├── Import/
+│   └── BookCsvImporter.cs
+├── Services/
+│   └── LendingService.cs
+├── Storage/
+│   ├── FileBookStore.cs
+│   └── InMemoryBookStore.cs
+├── EnvironmentInfo.cs
+└── SampleData.cs
+src/Cli/
+└── Program.cs
+src/Cli/
+└── Program.cs
 ```
 
 # Запуск 
-dotnet build 
+dotnet build
+
 dotnet run --project src/Cli 
 # Публікація (Publish) framework-dependent:
 dotnet publish src/Cli -c Release -r win-x64 --self-contained false
