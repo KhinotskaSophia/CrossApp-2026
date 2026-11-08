@@ -1,6 +1,7 @@
 ﻿using Core;
 using Core.Abstractions;
-using Core.Events;
+using Core.Domain;
+using Core.Reports;
 using Core.Services;
 using Core.Storage;
 
@@ -12,66 +13,65 @@ IBookStore store = useFile
     : new InMemoryBookStore(SampleData.Copies());
 
 var service = new LendingService(store);
+var allCopies = service.All();
+var allLoans = SampleData.InitialLoans(allCopies.ToList());
 
-var logPath = Path.Combine(AppContext.BaseDirectory, "logs", "app.log");
-Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+var command = args.FirstOrDefault(a => !a.StartsWith("--")) ?? "report-totals";
 
-void OnLibraryChanged(object? sender, LibraryChangedEventArgs e)
+switch (command)
 {
-    string details = e.Kind switch
-    {
-        LibraryEventKind.BookAdded => "Додано нову книгу до фонду",
-        LibraryEventKind.CopyIssued => $"Видано читачу {e.ReaderId} до {e.DueDate:yyyy-MM-dd}",
-        LibraryEventKind.CopyReturned => "Примірник повернуто до бібліотеки",
-        _ => string.Empty
-    };
+    case "report-top":
+        var top = LibraryReportService.TopReaders(allLoans, 5);
+        Console.WriteLine("=== ТОП ЧИТАЧІВ ЗА ВИДАЧАМИ ===");
+        foreach (var r in top)
+            Console.WriteLine($" Читач: {r.ReaderId,-12} | Активних видач: {r.LoansCount,3}");
+        break;
 
-    string line = $"{e.At:HH:mm:ss} [{e.Kind}] Примірник ID: {e.CopyId} | {details}";
-    Console.WriteLine(line);
-    File.AppendAllText(logPath, line + Environment.NewLine);
+    case "report-overdue":
+        var overdue = LibraryReportService.OverdueLoans(allLoans, DateTime.Now);
+        Console.WriteLine("=== ПРОСТРОЧЕНІ ВИДАЧІ ===");
+        foreach (var o in overdue)
+            Console.WriteLine($" ID: {o.LoanId,-6} | Примірник: {o.CopyId,-8} | Читач: {o.ReaderId,-12} | Дедлайн: {o.DueDate:yyyy-MM-dd}");
+        break;
+
+    case "report-groups":
+        var groups = LibraryReportService.GroupByGenre(allCopies);
+        Console.WriteLine("=== ГРУПУВАННЯ ЗА КАТЕГОРІЄЮ ISBN ===");
+        foreach (var g in groups)
+            Console.WriteLine($" {g.Genre,-6}  позицій: {g.BooksCount,3}  сумарно видано: {g.ActiveLoansCount,3}");
+        break;
+
+    case "report-totals":
+        var t = LibraryReportService.Totals(allCopies, allLoans);
+        Console.WriteLine($" позицій {t.TotalCopies,2}, всього примірників на руках {t.IssuedCopies}, середнє на категорію, макс копій {t.MaxCopiesPerBook}");
+        break;
+
+    case "demo-deferred":
+        RunDeferredExecutionDemo(allCopies);
+        break;
+
+    default:
+        Console.WriteLine("Доступні підкоманди звітів:");
+        Console.WriteLine("  report-top | report-overdue | report-groups | report-totals | demo-deferred");
+        break;
 }
 
-service.Changed += OnLibraryChanged;
-
-int changesCount = 0;
-service.Changed += (_, _) => changesCount++;
-
-Console.WriteLine($"=== Сховище: {store.GetType().Name} ===");
-
-Console.WriteLine("\n--- Успішні операції ---");
-var newCopy = service.AddBook("978-0-13-235088-4", "Clean Architecture");
-service.IssueCopy(newCopy.Id, "R-007", DateTime.Now.AddDays(14));
-
-Console.WriteLine($"\n[Лічильник] Подій отримано обробником-лямбдою: {changesCount}");
-
-Console.WriteLine("\n--- Тестування відписки ---");
-service.Changed -= OnLibraryChanged;
-
-service.ReturnCopy(newCopy.Id);
-Console.WriteLine($"[Лічильник після відписки]: {changesCount} (збільшився лише на 1 від лямбди)");
-
-Console.WriteLine("\n--- Сценарій відмови (порушення інваріантів) ---");
-TryDo("Спроба видати примірник, якого не існує", () =>
+static void RunDeferredExecutionDemo(IReadOnlyList<BookCopy> sourceList)
 {
-    service.IssueCopy("NON-EXISTENT", "R-001", DateTime.Now);
-});
+    Console.WriteLine("=== ДЕМОНСТРАЦІЯ ВІДКЛАДЕНОГО ВИКОНАННЯ (DEFERRED EXECUTION) ===");
+    
+    var workingSource = sourceList.ToList();
+    
+    var query = workingSource.Where(c => c.Isbn.StartsWith("978-0-13"));
+    
+    Console.WriteLine($"Кількість до змін у джерелі: {query.Count()}");
+    
+    workingSource.Add(BookCopy.Create("BC-999", "978-0-13-999", "Dynamic Test Book"));
+    
+    Console.WriteLine($"Кількість ПІСЛЯ додавання нового елемента: {query.Count()}");
 
-Console.WriteLine($"[Лічильник після помилки]: {changesCount} (помилка не згенерувала подію)");
-
-Console.WriteLine("\n--- Використання Func (FindAll) замість події ---");
-
-var issuedCopies = service.FindAll(b => b.IsIssued);
-Console.WriteLine($"Знайдено примірників на руках через FindAll: {issuedCopies.Count}");
-
-static void TryDo(string title, Action action)
-{
-    try
-    {
-        action();
-        Console.WriteLine($"[ПОМИЛКА ТЕСТУ] {title}: виняток не спрацював!");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[ОК] {title} -> {ex.GetType().Name}: {ex.Message}");
-    }
+    var snapshot = query.ToList();
+    workingSource.Clear();
+    
+    Console.WriteLine($"Після очищення джерела, у матеріалізованому знімку лишилось: {snapshot.Count} (дані зафіксовані).");
 }

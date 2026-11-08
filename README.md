@@ -3,41 +3,6 @@
 Предметна область: Бібліотека. Сутності: Book, BookCopy, Reader, Loan. 
 Призначення: облік видач примірників книг читачам. 
 
-# Структура рішення (Solution Structure)
-```text
-CrossApp/
-├── CrossApp.sln
-├── README.md
-├── .gitignore
-├── data/
-│   └── sample.csv
-└── src/Core/
-├── Abstractions/
-│   └── IBookStore.cs
-├── Domain/
-│   ├── BookCopy.cs
-│   └── Loan.cs
-├── Dto/
-│   ├── BookCopyDto.cs
-│   ├── BookDto.cs
-│   ├── ImportResult.cs
-│   ├── LoanDto.cs
-│   └── ReaderDto.cs
-├── Import/
-│   └── BookCsvImporter.cs
-├── Services/
-│   └── LendingService.cs
-├── Storage/
-│   ├── FileBookStore.cs
-│   └── InMemoryBookStore.cs
-├── EnvironmentInfo.cs
-└── SampleData.cs
-src/Cli/
-└── Program.cs
-src/Cli/
-└── Program.cs
-```
-
 # Запуск 
 dotnet build
 
@@ -46,37 +11,40 @@ dotnet run --project src/Cli
 dotnet publish src/Cli -c Release -r win-x64 --self-contained false
 # Публікація (Publish) self-contained:
 dotnet publish src/Cli -c Release -r win-x64 --self-contained true
+# Групування (Лаб 7)
+dotnet run --project src/Cli -- report-groups
+# Загальні підсумки (Лаб 7)
+dotnet run --project src/Cli -- report-totals
+# Демонстрація відкладеного виконання (Лаб 7)
+dotnet run --project src/Cli -- demo-deferred
 # Середовище 
 .NET SDK 10.0, Windows 11 x64
 
 RID         Режим                   Розмір publish      Потрібен runtime
 win-x64     self-contained          ~76 МБ              ні 
 win-x64     framework-dependent     ~195 KБ             так (.NET 10) - встановлений 
-
 # Режими публікації
 Framework-dependent: Публікація містить лише безпосередньо код застосунку та його залежності, але не містить .NET Runtime. Займає дуже мало місця, проте для її запуску на комп’ютері користувача має бути обов'язково встановлений .NET Runtime відповідної версії (.NET 10).
 
 Self-contained: Публікація містить і код застосунку, і повне середовище виконання .NET Runtime для визначеної платформи (RID). Такий застосунок може працювати на "чистому" комп’ютері без встановленого .NET, але папка з публікацією займає значно більше місця на диску.
-
-## Лабораторна робота 4: Доменна модель, інваріанти та інкапсуляція
-
-### Реалізовані інваріанти
-
+# Лабораторна робота 4: Доменна модель, інваріанти та інкапсуляція
+## Реалізовані інваріанти
 1. **Обов'язковість ідентифікаторів та текстових полів (`ArgumentException`)**:
    - При створенні `BookCopy`: поля `Id`, `Isbn` та `Title` не можуть бути порожніми або складеними лише з пробілів (`BookCopy.Create`).
    - При відкритті видачі `Loan`: поля `Id` та `ReaderId` є обов'язковими (`Loan.Open`).
-
 2. **Захист від некоректного стану примірника (`InvalidOperationException`)**:
    - Неможливо видати примірник, який уже має статус виданого (`BookCopy.Issue`).
    - Неможливо оформити повернення примірника, який не був виданий (`BookCopy.Return`).
-
 3. **Коректність хронології операцій (`ArgumentOutOfRangeException`)**:
    - Дата повернення не може передувати даті оформлення видачі (`Loan.Close`: умова `returnedOn < IssuedOn`).
-
 4. **Цілісність процесу видачі (`InvalidOperationException`)**:
    - Неможливо повторно закрити видачу, яка вже була закрита (`Loan.Close`: перевірка `IsClosed`).
    - Неможливо закрити видачу примірником, ідентифікатор якого не збігається з виданим (`Loan.Close`: перевірка `copy.Id == BookCopyId`).
-
 5. **Інкапсуляція стану та фабричні методи**:
    - Публічні сетери відсутні, зміна стану здійснюється лише методами `Issue()`, `Return()` та `Close()`.
    - Конструктори сутностей закриті (`private`), створення можливе лише через фабричні методи `BookCopy.Create`, `Loan.Open`, або через мапінг відновлення `FromDto`.
+# Пояснення відкладеного виконання LINQ (Deferred Execution, лаб 7)
+   У  коді LINQ-запит `workingSource.Where(...)` не виконується в момент його оголошення, а лише зберігає дерево виразу та умови фільтрації. Оброблення даних відбувається безпосередньо під час виклику матеріалізуючого оператора `Count()`, який запускає ітерацію по джерелу даних у цей конкретний момент. 
+   Оскільки між двома викликами `query.Count()` у джерело `workingSource` було додано новий елемент, перший виклик порахував елементи у початковому стані колекції, а другий — на вже оновленому джерелі. 
+   Різниця у значеннях підтверджує, що LINQ to Objects працює за принципом відкладеного (лінивого) виконання, тоді як виклик `ToList()` фіксує (матеріалізує) знімок даних у пам'яті та унеможливлює подальший вплив змін у джерелі на результат.
+   
