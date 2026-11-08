@@ -21,7 +21,7 @@ public static class LibraryReportService
              .ToList();
 
     public static IReadOnlyList<GenreGroupSummary> GroupByGenre(IEnumerable<BookCopy> copies) =>
-        copies.GroupBy(c => c.Isbn.Length >= 6 ? c.Isbn[..6] : c.Isbn, StringComparer.OrdinalIgnoreCase)
+        copies.GroupBy(c => c.Isbn.Length >= 9 ? c.Isbn[..9] : c.Isbn, StringComparer.OrdinalIgnoreCase)
               .Select(g => new GenreGroupSummary(g.Key, g.Count(), g.Count(c => c.IsIssued)))
               .OrderByDescending(g => g.BooksCount)
               .ThenBy(g => g.Genre, StringComparer.Ordinal)
