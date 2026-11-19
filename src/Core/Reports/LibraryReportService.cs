@@ -21,10 +21,15 @@ public static class LibraryReportService
              .ToList();
 
     public static IReadOnlyList<GenreGroupSummary> GroupByGenre(IEnumerable<BookCopy> copies) =>
-        copies.GroupBy(c => c.Isbn.Length >= 9 ? c.Isbn[..9] : c.Isbn, StringComparer.OrdinalIgnoreCase)
-              .Select(g => new GenreGroupSummary(g.Key, g.Count(), g.Count(c => c.IsIssued)))
-              .OrderByDescending(g => g.BooksCount)
-              .ThenBy(g => g.Genre, StringComparer.Ordinal)
+        copies.GroupBy(
+                  c => string.IsNullOrWhiteSpace(c.Genre) ? "Без жанру" : c.Genre.Trim(),
+                  StringComparer.OrdinalIgnoreCase)
+              .Select(g => new GenreGroupSummary(
+                  g.Key,
+                  g.Count(),
+                  g.Count(c => c.IsIssued)))
+              .OrderBy(g => g.Genre, StringComparer.CurrentCulture)
+              .ThenByDescending(g => g.BooksCount)
               .ToList();
 
     public static LibraryTotalsSummary Totals(IEnumerable<BookCopy> copies, IEnumerable<Loan> loans)

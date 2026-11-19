@@ -1,9 +1,12 @@
-﻿using Core;
+﻿using System.Reflection;
+using Core;
 using Core.Abstractions;
+using Core.Configuration;
 using Core.Domain;
 using Core.Reports;
 using Core.Services;
 using Core.Storage;
+using Microsoft.Extensions.Configuration;
 
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
@@ -13,11 +16,39 @@ Console.CancelKeyPress += (_, e) =>
     Console.WriteLine("\nОтримано сигнал скасування (Ctrl+C)...");
 };
 
+var envName = Environment.GetEnvironmentVariable("CROSSAPP_ENVIRONMENT") ?? "Development";
+
+var config = new ConfigurationBuilder()
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+    .AddJsonFile($"appsettings.{envName}.json", optional: true, reloadOnChange: false)
+    .AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true)
+    .AddEnvironmentVariables(prefix: "CROSSAPP_")
+    .AddCommandLine(args)
+    .Build();
+
+var options = config.Get<AppOptions>() ?? new AppOptions();
+var legacyDataPath = Environment.GetEnvironmentVariable("CROSSAPP_DATA_PATH");
+
+var effectiveStorage = new StorageOptions
+{
+    DataPath = string.IsNullOrWhiteSpace(legacyDataPath) ? options.Storage.DataPath : legacyDataPath,
+    FileName = options.Storage.FileName
+};
+
+string fullDataPath = effectiveStorage.ResolveFullPath(AppContext.BaseDirectory);
+var apiKey = config["Integration:ApiKey"];
+
+Console.WriteLine($"Середовище: {envName} (Log: {options.Logging.MinimumLevel})");
+Console.WriteLine($"Файл даних: {fullDataPath}");
+Console.WriteLine(apiKey is null
+    ? "ApiKey: не заданий"
+    : $"ApiKey: присутній, довжина {apiKey.Length}");
+
 bool useFile = args.Contains("--file");
-string defaultDataPath = Path.Combine(AppContext.BaseDirectory, "data", "catalog.json");
 
 IBookStore store = useFile
-    ? new FileBookStore(defaultDataPath)
+    ? new FileCatalogStore(fullDataPath)
     : new InMemoryBookStore(SampleData.Copies());
 
 var service = new LendingService(store);
@@ -29,16 +60,32 @@ try
     switch (command)
     {
         case "import":
-            string importPath = defaultDataPath;
+            string importPath = fullDataPath;
             var pathIndex = Array.IndexOf(args, "--path");
             if (pathIndex >= 0 && pathIndex < args.Length - 1)
             {
-                importPath = args[pathIndex + 1];
+                var rawPath = args[pathIndex + 1];
+                importPath = Path.IsPathRooted(rawPath)
+                    ? Path.GetFullPath(rawPath)
+                    : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, rawPath));
             }
 
             Console.WriteLine($"Розпочинаємо асинхронний імпорт із файлу: {importPath}");
             int imported = await service.ImportAsync(new JsonCatalogImporter(), importPath, cts.Token);
             Console.WriteLine($"Успішно імпортовано записів: {imported}");
+            break;
+
+        case "export":
+            var fileStore = new FileCatalogStore(fullDataPath);
+            foreach (var copy in service.All())
+            {
+                if (fileStore.GetById(copy.Id) is null)
+                {
+                    fileStore.Add(copy);
+                }
+            }
+            fileStore.Export();
+            Console.WriteLine($"Експортовано записів у {fullDataPath}: {fileStore.List().Count}");
             break;
 
         case "report-top":
@@ -61,9 +108,9 @@ try
 
         case "report-groups":
             var groups = LibraryReportService.GroupByGenre(service.All());
-            Console.WriteLine("=== ГРУПУВАННЯ ЗА КАТЕГОРІЄЮ ISBN ===");
+            Console.WriteLine("=== ГРУПУВАННЯ ЗА ЖАНРОМ ===");
             foreach (var g in groups)
-                Console.WriteLine($" Категорія: {g.Genre,-15} | Позицій: {g.BooksCount,3}");
+                Console.WriteLine($" Жанр: {g.Genre,-20} | Позицій: {g.BooksCount,3}");
             break;
 
         case "report-totals":
@@ -79,7 +126,7 @@ try
 
         default:
             Console.WriteLine($"Невідома команда: {command}");
-            Console.WriteLine("Доступні підкоманди: import, report-top, report-overdue, report-groups, report-totals, demo-deferred");
+            Console.WriteLine("Доступні підкоманди: import, export, report-top, report-overdue, report-groups, report-totals, demo-deferred");
             break;
     }
 }

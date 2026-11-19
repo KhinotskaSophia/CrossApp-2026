@@ -1,0 +1,152 @@
+[
+  {
+    "id": "BC-001",
+    "isbn": "978-0-13",
+    "title": "Clean Code",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Програмування"
+  },
+  {
+    "id": "BC-002",
+    "isbn": "978-0-13",
+    "title": "Clean Architecture",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Архітектура"
+  },
+  {
+    "id": "BC-003",
+    "isbn": "978-0-13",
+    "title": "The Clean Coder",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Практики"
+  },
+  {
+    "id": "BC-004",
+    "isbn": "978-0-201",
+    "title": "Design Patterns",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Архітектура"
+  },
+  {
+    "id": "BC-005",
+    "isbn": "978-0-201",
+    "title": "Refactoring",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Програмування"
+  },
+  {
+    "id": "BC-006",
+    "isbn": "978-0-321",
+    "title": "Domain-Driven Design",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Архітектура"
+  },
+  {
+    "id": "BC-007",
+    "isbn": "978-0-596",
+    "title": "Head First Design Patterns",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Архітектура"
+  },
+  {
+    "id": "BC-008",
+    "isbn": "978-1-617",
+    "title": "C# in Depth",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Програмування"
+  },
+  {
+    "id": "BC-009",
+    "isbn": "978-1-617",
+    "title": "CLR via C#",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Програмування"
+  },
+  {
+    "id": "BC-010",
+    "isbn": "978-1-491",
+    "title": "Designing Data-Intensive Applications",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Архітектура"
+  },
+  {
+    "id": "BC-011",
+    "isbn": "978-0-7356",
+    "title": "Code Complete",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Практики"
+  },
+  {
+    "id": "BC-012",
+    "isbn": "978-0-201",
+    "title": "Extreme Programming",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Практики"
+  },
+  {
+    "id": "BC-013",
+    "isbn": "978-0-13",
+    "title": "Working Effectively with Legacy Code",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Практики"
+  },
+  {
+    "id": "BC-014",
+    "isbn": "978-1-617",
+    "title": "Pro C# with .NET",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Програмування"
+  },
+  {
+    "id": "BC-015",
+    "isbn": "978-0-321",
+    "title": "Effective C#",
+    "isIssued": false,
+    "author": "Невідомий автор",
+    "year": 0,
+    "copies": 1,
+    "genre": "Програмування"
+  }
+]

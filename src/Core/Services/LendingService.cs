@@ -13,10 +13,10 @@ public sealed class LendingService(IBookStore store)
     private void OnChanged(string copyId, string readerId, LibraryEventKind kind, DateTime? dueDate = null) =>
         Changed?.Invoke(this, new LibraryChangedEventArgs(copyId, readerId, kind, dueDate));
 
-    public BookCopy AddBook(string isbn, string title)
+    public BookCopy AddBook(string isbn, string title, string genre = "Загальне")
     {
         string id = $"BC-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
-        var copy = BookCopy.Create(id, isbn, title);
+        var copy = BookCopy.Create(id, isbn, title, genre: genre);
         _store.Add(copy);
 
         OnChanged(copy.Id, "—", LibraryEventKind.BookAdded);
@@ -28,9 +28,18 @@ public sealed class LendingService(IBookStore store)
         var copy = _store.GetById(copyId)
             ?? throw new InvalidOperationException($"Примірник з id={copyId} не знайдено.");
 
-        copy.Issue(); 
+        copy.Issue();
         _store.Update(copy);
         OnChanged(copy.Id, readerId, LibraryEventKind.CopyIssued, dueDate);
+    }
+
+    public void IssueCopyForDays(string copyId, string readerId, int loanDays)
+    {
+        if (loanDays <= 0)
+            throw new ArgumentOutOfRangeException(nameof(loanDays), "Строк видачі має бути додатним.");
+
+        var dueDate = DateTime.Now.AddDays(loanDays);
+        IssueCopy(copyId, readerId, dueDate);
     }
 
     public void ReturnCopy(string copyId)
@@ -38,7 +47,7 @@ public sealed class LendingService(IBookStore store)
         var copy = _store.GetById(copyId)
             ?? throw new InvalidOperationException($"Примірник з id={copyId} не знайдено.");
 
-        copy.Return(); 
+        copy.Return();
         _store.Update(copy);
         OnChanged(copy.Id, "—", LibraryEventKind.CopyReturned);
     }
@@ -49,7 +58,7 @@ public sealed class LendingService(IBookStore store)
 
     public IReadOnlyList<BookCopy> FindAll(Func<BookCopy, bool> predicate) =>
         _store.List().Where(predicate).ToList();
-    
+
     public async Task<int> ImportAsync(ICatalogImporter importer, string path, CancellationToken ct = default)
     {
         var items = await importer.LoadAsync(path, ct);
@@ -60,7 +69,7 @@ public sealed class LendingService(IBookStore store)
             ct.ThrowIfCancellationRequested();
 
             if (_store.GetById(item.Id) is not null)
-                continue; 
+                continue;
 
             _store.Add(item);
             OnChanged(item.Id, string.Empty, LibraryEventKind.BookAdded);

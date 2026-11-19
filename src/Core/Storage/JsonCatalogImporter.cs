@@ -9,7 +9,9 @@ public sealed class JsonCatalogImporter : ICatalogImporter
 {
     public async Task<IReadOnlyList<BookCopy>> LoadAsync(string path, CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested(); // <-- Перевіряємо одразу на вході
+        await Task.Delay(500, ct);
+        
+        ct.ThrowIfCancellationRequested(); 
 
         if (!File.Exists(path))
             throw new FileNotFoundException("Файл не знайдено", path);
