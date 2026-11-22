@@ -7,6 +7,12 @@
 dotnet build
 
 dotnet run --project src/Cli 
+## Середовище 
+.NET SDK 10.0, Windows 11 x64
+
+RID         Режим                   Розмір publish      Потрібен runtime
+win-x64     self-contained          ~76 МБ              ні 
+win-x64     framework-dependent     ~195 KБ             так (.NET 10) - встановлений 
 ## Публікація (Publish) framework-dependent:
 dotnet publish src/Cli -c Release -r win-x64 --self-contained false
 ## Публікація (Publish) self-contained:
@@ -19,12 +25,24 @@ dotnet run --project src/Cli -- report-totals
 dotnet run --project src/Cli -- demo-deferred
 ## Запуск unit-тестів
 dotnet test
-## Середовище 
-.NET SDK 10.0, Windows 11 x64
+## Запуск (лаб 10)
+dotnet run --project src/Api --urls http://localhost:5080
 
-RID         Режим                   Розмір publish      Потрібен runtime
-win-x64     self-contained          ~76 МБ              ні 
-win-x64     framework-dependent     ~195 KБ             так (.NET 10) - встановлений 
+http://localhost:5080/scalar/v1
+
+http://localhost:5080/api/books
+
+### POST (очікується 201 Created)
+$json = '{"isbn":"978-617-15-2138-4","title":"Нічна зміна","author":"Стівен Кінг","genre":"Трилер","year":2026,"copies":4}'
+[System.IO.File]::WriteAllBytes("body.json", [System.Text.Encoding]::UTF8.GetBytes($json))
+curl.exe -i -X POST http://localhost:5080/api/books -H "Content-Type: application/json; charset=utf-8" --data-binary "@body.json"
+### GET список 
+curl.exe -i http://localhost:5080/api/books
+curl.exe -i http://localhost:5080/api/books/5207c5e7
+### GET неіснуючого id (очікується 404 Not Found)
+curl.exe -i http://localhost:5080/api/books/3987c5k7
+### POST з невалідними даними (очікується 400 Bad Request з errors)
+curl.exe -i -X DELETE http://localhost:5080/api/books/5207c5e7
 ### Режими публікації
 Framework-dependent: Публікація містить лише безпосередньо код застосунку та його залежності, але не містить .NET Runtime. Займає дуже мало місця, проте для її запуску на комп’ютері користувача має бути обов'язково встановлений .NET Runtime відповідної версії (.NET 10).
 
